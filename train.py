@@ -181,8 +181,9 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
 
     # Trainloader
     dataloader, dataset = create_dataloader(train_path, imgsz, batch_size, gs, opt,
-                                            hyp=hyp, augment=True, cache=opt.cache_images, rect=opt.rect,
-                                            rank=rank, world_size=opt.world_size, workers=opt.workers)
+                                            hyp=hyp, augment=True, cache=opt.cache_images, rect=opt.rect, rank=rank,
+                                            world_size=opt.world_size, workers=opt.workers,
+                                            image_weights=opt.image_weights)
     mlc = np.concatenate(dataset.labels, 0)[:, 0].max()  # max label class
     nb = len(dataloader)  # number of batches
     assert mlc < nc, 'Label class %g exceeds nc=%g in %s. Possible class labels are 0-%g' % (mlc, nc, opt.data, nc - 1)
@@ -396,8 +397,9 @@ def train(hyp, opt, device, tb_writer=None, wandb=None):
         if plots:
             plot_results(save_dir=save_dir)  # save as results.png
             if wandb:
-                wandb.log({"Results": [wandb.Image(str(save_dir / x), caption=x) for x in
-                                       ['results.png', 'precision_recall_curve.png']]})
+                files = ['results.png', 'precision_recall_curve.png', 'confusion_matrix.png']
+                wandb.log({"Results": [wandb.Image(str(save_dir / f), caption=f) for f in files
+                                       if (save_dir / f).exists()]})
         logger.info('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
     else:
         dist.destroy_process_group()
